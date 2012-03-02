@@ -16,10 +16,6 @@ def harvest(path, exts):
         words_found.update(words)
     return words_found
 
-def usage():
-    print "Usage:", sys.argv[0], "[-e <ext1:ext2...>] -d <dir_to_traverse> -o <out_file>"    
-    
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Harvest words in files')
