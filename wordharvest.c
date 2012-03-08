@@ -12,8 +12,8 @@
 
 #define SHRINK
 
+/* As required by qsort */
 int compare(const void* a, const void* b) {
-  /* fprintf(stderr, "%p %p %d\n", *(char**)a, *(char**)b, strcmp(*(char**)a, *(char**)b)); */
   return strcmp(*(char**)a, *(char**)b);
 }
 
@@ -42,9 +42,8 @@ char* exec(char* cmd) {
   }
   /* Maybe our result string was too  short and the last fgets did not
      finish getting a whole line  into buffer, so let's eliminate this
-     gargage and leave only whole lines, all ended by '\n' */
+     garbage and leave only whole lines, all ended by '\n' */
   if (result[size-1] != '\n') {
-    fprintf(stderr, "Did not read a whole line.\n");    
     while (size > 0 && result[size-1] != '\n')
       result[size--] = '\0';
   }
@@ -52,6 +51,7 @@ char* exec(char* cmd) {
   return result;
 }
 
+/* Returns a string with the find command to be executed */
 char* buildFindCmd(char** extensions, char* dir) {
   char* cmd = (char*)malloc(sizeof(char) * MAXLINELEN);
   bzero(cmd, MAXLINELEN);    /* ALWAYS bzero before strcat! */
@@ -74,6 +74,8 @@ char* buildFindCmd(char** extensions, char* dir) {
   return cmd;
 }
 
+
+/* Eliminates duplicates, returns the new size */
 int shrink(char** words, int num_words) {
   int i, j;
   qsort(words, num_words, sizeof(char*), compare);
@@ -88,6 +90,7 @@ int shrink(char** words, int num_words) {
   return i+1;
 }
 
+/* Inserts a word into words. Returns length of the string. */
 int insert(char** words, long long int* num_words, char* buffer, int p) {
   int len = strlen(buffer+p);
   if (len) {
@@ -100,6 +103,7 @@ int insert(char** words, long long int* num_words, char* buffer, int p) {
   return len;
 }
 
+/* Takes an open file and adds all words from the file to words. */
 int addWords(FILE* f, char** words) {
   int p, q;
   long long int num_words = 0;
@@ -112,7 +116,7 @@ int addWords(FILE* f, char** words) {
   while (!feof(f)) {
 #ifdef SHRINK
     if (num_words > threshold) { /* Whenever we've got more than THRESHOLD words */
-      fprintf(stderr, " *********************** Mini Shrinking, Threshold: %llu ***********************\n\n", threshold);
+      /* fprintf(stderr, " *********************** Mini Shrinking, Threshold: %llu ***********************\n\n", threshold); */
       num_words = shrink(words, num_words); /* Eliminate duplicates */
       threshold_hit++;
       if (threshold_hit > 2) {
@@ -199,8 +203,8 @@ int main (int argc, char **argv) {
         abort ();
       }
      
-  fprintf(stderr, "extensions = %s, dir = %s, output = %s\n",
-          extensions, dir, output);
+  /* fprintf(stderr, "extensions = %s, dir = %s, output = %s\n", */
+  /*         extensions, dir, output); */
      
   /* for (i = optind; i < argc; i++) */
   /*   fprintf(stderr, "Non-option argument %s\n", argv[i]); */
@@ -217,19 +221,20 @@ int main (int argc, char **argv) {
   unsigned long long int threshold = STARTTHRESHOLD;  
   int threshold_hit = 0;
   char *file;
+  FILE *f;
   while ((file = strsep(&filelist, "\n")) != NULL) {
     if (file[0] != '\0') {
-      fprintf(stderr, "===== Opening %s\n", file);
-      FILE *f = fopen(file, "r");
+      /* fprintf(stderr, "===== Opening %s\n", file); */
+      f = fopen(file, "r");
       num_words_turn = addWords(f, words+num_words);
-      fprintf(stderr, "===== Total: %llu - Added %llu words from file %s\n", num_words, num_words_turn, file);
+      /* fprintf(stderr, "===== Total: %llu - Added %llu words from file %s\n", num_words, num_words_turn, file); */
       num_words += num_words_turn;
       if (num_words >= MAXWORDS-1) {
         fprintf(stderr, " *********************** Numero maximo de palavras excedido. ***********************\n\n\n");
       }
 #ifdef SHRINK
       if (num_words > threshold) { /* Whenever we've got more than THRESHOLD words */
-        fprintf(stderr, " *********************** Shrinking, Threshold: %llu ***********************\n\n", threshold);
+        /* fprintf(stderr, " *********************** Shrinking, Threshold: %llu ***********************\n\n", threshold); */
         num_words = shrink(words, num_words); /* Eliminate duplicates */
         threshold_hit++;
         if (threshold_hit > 2) {
@@ -242,10 +247,19 @@ int main (int argc, char **argv) {
     }
   }
   num_words = shrink(words, num_words);
-  fprintf(stderr, "===== Total words found: %llu\n", num_words);
+  /* fprintf(stderr, "===== Total words found: %llu\n", num_words); */
 
-  for (i = 0; i < num_words; i++) {
-    printf("%s\n", words[i]);
+  if (output) {
+    f = fopen(output, "w");
+    for (i = 0; i < num_words; i++) {
+      fprintf(f, "%s\n", words[i]);
+    }
+    fclose(f);
+  }
+  else {
+    for (i = 0; i < num_words; i++) {
+      printf("%s\n", words[i]);
+    }
   }
 
   fprintf(stderr, "===== Total words found: %llu\n", num_words);
