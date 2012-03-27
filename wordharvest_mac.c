@@ -132,7 +132,7 @@ char* buildFindCmd(char** extensions, char* dir) {
 }
 
 /* Eliminates duplicates, returns the new size */
-int shrink(char** words, int num_words) {
+int shrink2(char** words, int num_words) {
   int i, j, k;
   qsort(words, num_words, sizeof(char*), compare);
   i = 0; j = 0;
@@ -141,6 +141,27 @@ int shrink(char** words, int num_words) {
       j++;
     if (i < num_words-1 && j < num_words) {
       words[++i] = words[j];
+    }
+  }
+  return i+1;
+}
+
+/* Eliminates duplicates, returns the new size */
+int shrink(char** words, int num_words) {
+  int i, j, k;
+  qsort(words, num_words, sizeof(char*), compare);
+  i = 0; j = 1;
+  while(i < num_words && j < num_words) {
+    while (j < num_words && !strcmp(words[i], words[j])) {
+      free(words[j]);
+      words[j] = NULL;
+      j++;
+    }
+    if (i < num_words-1 && j < num_words) {
+      /* words[++i] = words[j++]; */
+      i++;
+      words[i] = words[j];
+      j++;
     }
   }
   return i+1;
@@ -265,21 +286,18 @@ int main (int argc, char **argv) {
 
   /* opterr = 0;                   /\* Turn off error msgs from getopt *\/ */
      
-  while ((c = getopt (argc, argv, "e::d:o:")) != -1)
+  while ((c = getopt (argc, argv, "e::d:o::")) != -1)
     switch (c)
       {
       case 'e':
         free(extensions); 
-        extensions = argv[optind];
-	/* fprintf(stderr, "%s %s\n", extensions, optarg); */
+        extensions = optarg;
         break;
       case 'd':
         dir = optarg;
-	/* fprintf(stderr, "%s %s\n", dir, optarg); */
         break;
       case 'o':
         output = optarg;
-	/* fprintf(stderr, "%s %s\n", output, optarg); */
         break;
       case '?':
         if (optopt == 'e' || optopt == 'd' || optopt == 'o')
@@ -326,8 +344,7 @@ int main (int argc, char **argv) {
       f = fopen(file, "r");
       num_words_turn = addWords(f, words+num_words);
       /* fprintf(stderr, "===== Total: %llu - Added %llu words from file %s\n", num_words, num_words_turn, file); */
-      fprintf(stderr, "===== Total: %llu                        %d of %d files                    \r", 
-	      num_words, numFilesDone+1, numFiles);
+      fprintf(stderr, "===== Total: %llu                        %d of %d files \r", num_words, numFilesDone, numFiles-1);
       num_words += num_words_turn;
       if (num_words >= MAXWORDS-1) {
         fprintf(stderr, " *********************** Numero maximo de palavras excedido. ***********************\n\n\n");
